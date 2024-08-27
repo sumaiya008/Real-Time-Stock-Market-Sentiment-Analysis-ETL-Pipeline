@@ -8,7 +8,7 @@ import asyncio
 from prefect_dask import DaskTaskRunner, get_dask_client
 import dask 
 import dask.distributed
-from ..data_loading.io import io
+from data_loading.s3_io_manager import S3IOManager
 
 import datetime 
 
