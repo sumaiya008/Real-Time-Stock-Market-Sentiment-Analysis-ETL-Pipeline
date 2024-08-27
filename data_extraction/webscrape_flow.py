@@ -8,7 +8,7 @@ import asyncio
 from prefect_dask import DaskTaskRunner, get_dask_client
 import dask 
 import dask.distributed
-from data_loading.s3_io_manager import S3IOManager
+from s3_io_manager import S3IOManager
 
 import datetime 
 
@@ -134,7 +134,7 @@ def extract_urls_to_news(urls: list) -> AsyncWebScraper:
     return scraper
 
 @flow(task_runner=DaskTaskRunner(address=client.scheduler.address))
-def extract_news(scraper: AsyncWebScraper, websites: list) -> None:
+def extract_news(scraper: AsyncWebScraper, websites: list) -> list:
     """
     Extract text information from news links existing on the top-level websites given.
 
@@ -152,7 +152,7 @@ def extract_news(scraper: AsyncWebScraper, websites: list) -> None:
     # Return Dask client 
     with get_dask_client():
         # Upload web scraper implementation to Dask workers
-        client.upload_file('/opt/sentiment_analysis_pipeline/prefect_flows/implementations/extract_webscrape/webscraper.py')
+        client.upload_file('/opt/REAL-TIME-STOCK-MARKET-Sentiment-Analysis-ETL-Pipeline/data_extraction/webscraper.py')
         # Retrieve data 
         yahoo_data = future_yahoo.result()
         marketwatch_data = future_marketwatch.result()
@@ -169,7 +169,7 @@ def push_to_s3(bucket_block: str, data: list) -> None:
         data (list): List of tuples (website name, dict of data)
     """
     # Define IO object 
-    i_o = io(bucket_block)
+    i_o = S3IOManager(bucket_block)
     # Define timestamp for file name 
     t_stamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     # Write data to JSON in temp dir 
@@ -196,6 +196,15 @@ def webscrape_extract() -> None:
     push_to_s3(config.s3_block, website_datalist)
     return 
 
+async def main_flow():
+    # Your main async logic here
+    await some_async_task()
+
 if __name__ == '__main__':
-    # Kickoff web scrape extract flow 
-    webscrape_extract()
+    try:
+        asyncio.run(main_flow())
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        # Add any cleanup code here
+        print("Shutting down gracefully.")
