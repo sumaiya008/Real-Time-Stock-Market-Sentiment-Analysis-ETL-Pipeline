@@ -5,6 +5,7 @@ from prefect import flow, task
 from webscraper import AsyncWebScraper
 import config
 import asyncio
+import logging
 from prefect_dask import DaskTaskRunner, get_dask_client
 import dask 
 import dask.distributed
@@ -14,6 +15,10 @@ import datetime
 
 # Initialize Dask client for parallelization of flows
 client = dask.distributed.Client()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def url_filter(url: str, block_set: set) -> bool:
     """
@@ -196,16 +201,22 @@ def webscrape_extract() -> None:
     push_to_s3(config.s3_block, website_datalist)
     return 
 
-async def main_flow():
-    # Your main async logic here
-    await some_async_task()
 
-if __name__ == '__main__':
+def shutdown_logging():
+    """Flush and close all logging handlers."""
+    for handler in logging.root.handlers[:]:
+        handler.flush()
+        handler.close()
+        logging.root.removeHandler(handler)
+
+
+if __name__ == "__main__":
     try:
-        asyncio.run(main_flow())
+        webscrape_extract()
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e}")
     finally:
-        # Add any cleanup code here
-        print("Shutting down gracefully.")
+        client.close()
+        shutdown_logging()
+        logger.info("Shutting down gracefully.")
 
